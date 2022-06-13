@@ -1,0 +1,105 @@
+diff --git a/node_modules/hatena-bookmark-api/CHANGELOG.md b/node_modules/hatena-bookmark-api/CHANGELOG.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/LICENSE b/node_modules/hatena-bookmark-api/LICENSE
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/README.md b/node_modules/hatena-bookmark-api/README.md
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/client.d.ts b/node_modules/hatena-bookmark-api/lib/client.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/client.js b/node_modules/hatena-bookmark-api/lib/client.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/credentials.d.ts b/node_modules/hatena-bookmark-api/lib/credentials.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/credentials.js b/node_modules/hatena-bookmark-api/lib/credentials.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/index.d.ts b/node_modules/hatena-bookmark-api/lib/index.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/index.js b/node_modules/hatena-bookmark-api/lib/index.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/oauth.d.ts b/node_modules/hatena-bookmark-api/lib/oauth.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/oauth.js b/node_modules/hatena-bookmark-api/lib/oauth.js
+old mode 100644
+new mode 100755
+index 4a148f6..2545b4c
+--- a/node_modules/hatena-bookmark-api/lib/oauth.js
++++ b/node_modules/hatena-bookmark-api/lib/oauth.js
+@@ -13,15 +13,18 @@ var _url = require("url");
+ 
+ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+ 
+-const objectFromEntries = entries => {
++// 同じ名前を持つパラメータの値は配列にまとめてすべて残す
++const objectFromSearchParams = (searchParams) => {
+   const o = Object.create(null);
+ 
+-  for (const [k, v] of entries) {
+-    o[k] = v;
++  for (const k of searchParams.keys()) {
++    if (!(k in o)) {
++      o[k] = searchParams.getAll(k);
++    }
+   }
+ 
+   return o;
+-};
++}
+ 
+ const oauthAuthorizationHeader = (urlString, method, oauthKeys) => {
+   const nonce = _crypto.default.randomBytes(16).toString("hex");
+@@ -35,7 +38,7 @@ const oauthAuthorizationHeader = (urlString, method, oauthKeys) => {
+     urlObject.searchParams.append(name, value);
+   }
+ 
+-  const params = [...oauthSortedParams, ["oauth_signature", _oauthSign.default.sign(signatureMethod, method, urlObject.protocol + "//" + urlObject.host + urlObject.pathname, objectFromEntries(urlObject.searchParams.entries()), oauthKeys.consumerSecret, oauthKeys.accessTokenSecret)]].map(([name, value]) => `${name}="${_oauthSign.default.rfc3986(value)}"`).join(",");
++  const params = [...oauthSortedParams, ["oauth_signature", _oauthSign.default.sign(signatureMethod, method, urlObject.protocol + "//" + urlObject.host + urlObject.pathname, objectFromSearchParams(urlObject.searchParams), oauthKeys.consumerSecret, oauthKeys.accessTokenSecret)]].map(([name, value]) => `${name}="${_oauthSign.default.rfc3986(value)}"`).join(",");
+   return `OAuth ${params}`;
+ };
+ 
+diff --git a/node_modules/hatena-bookmark-api/lib/operation.d.ts b/node_modules/hatena-bookmark-api/lib/operation.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/operation.js b/node_modules/hatena-bookmark-api/lib/operation.js
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/request.d.ts b/node_modules/hatena-bookmark-api/lib/request.d.ts
+old mode 100644
+new mode 100755
+diff --git a/node_modules/hatena-bookmark-api/lib/request.js b/node_modules/hatena-bookmark-api/lib/request.js
+old mode 100644
+new mode 100755
+index 20d53f8..c7b3258
+--- a/node_modules/hatena-bookmark-api/lib/request.js
++++ b/node_modules/hatena-bookmark-api/lib/request.js
+@@ -29,14 +29,19 @@ const request = (operationId, oauth, params) => {
+   const method = operation.method;
+   const urlObject = new _url.URL(operation.path, _operation.baseUrl);
+   Object.entries(params).forEach(([key, value]) => {
+-    urlObject.searchParams.append(key, value);
++    if (key === 'tags') {
++      // value がタグの配列になっているので，1つずつに分けて searchParams に格納する
++      value.forEach((tag) => urlObject.searchParams.append(key, tag));
++    } else {
++      urlObject.searchParams.append(key, value);
++    }
+   });
+   headers.append("Authorization", (0, _oauth.oauthAuthorizationHeader)(urlObject.toString(), method, oauth));
+   return (0, _nodeFetch.default)(urlObject.toString(), {
+     headers,
+     method
+   }).then(response => {
+-    if (response.status === 204) return Promise.resolve();else if (200 <= response.status && response.status <= 299) return response.json();else {
++    if (response.status === 204) return Promise.resolve(); else if (200 <= response.status && response.status <= 299) return response.json(); else {
+       const {
+         headers,
+         status
