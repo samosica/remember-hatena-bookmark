@@ -1,0 +1,2 @@
+# remember-hatena-bookmark-pub
+はてなブックマークでブックマークしたURLをSlackに1日1個投稿するシステムです
